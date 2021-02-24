@@ -1,0 +1,13 @@
+# Default values for my-app.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+mongodb:
+  replicas: 1
+  image: mongo
+  port:  27017
+
+mongo-express:
+  replicas: 1
+  image: mongo-express
+  port: 8081

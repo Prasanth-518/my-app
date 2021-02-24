@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: node-app
+  namespace: my-first-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: myapp
+  template:
+    metadata:
+      labels:
+        app: myapp
+    spec:
+      # nodeSelector:
+        # "beta.kubernetes.io/os": linux
+      containers:
+      - name: myapp
+        image: prasanth98registry.azurecr.io/myapp:{{ .Release.Version }}
+        ports:
+        - containerPort: 3000
+        env:
+        - name: MONGODB_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: mongodb-secret
+              key: mongo-root-username
+        - name: MONGODB_PWD
+          valueFrom: 
+            secretKeyRef:
+              name: mongodb-secret
+              key: mongo-root-password
+        - name: MONGODB_SERVER
+          valueFrom: 
+            configMapKeyRef:
+              name: mongodb-configmap
+              key: database_url
+      - name: sensu-agent
+        image: sensu/sensu:latest
+        command: ["/opt/sensu/bin/sensu-agent", "start", "--log-level=debug", "--insecure-skip-tls-verify", "--keepalive-interval=5", "--keepalive-timeout=10"]
+        env:
+        - name: SENSU_BACKEND_URL
+          value: wss://sensu-agent-api-service:8081
+        - name: SENSU_NAMESPACE
+          value: webinar
+        - name: SENSU_SUBSCRIPTIONS
+          value: linux kubernetes nginx
+        - name: SENSU_DEREGISTER
+          value: "true"
+        - name: SENSU_STATSD_EVENT_HANDLERS
+          value: statsd
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: node-app
+  namespace: my-first-app
+spec:
+  type: NodePort
+  ports:
+  - port: 3000
+    targetPort: 3000
+  selector:
+    app: myapp
+  
